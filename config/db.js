@@ -1,16 +1,19 @@
-//posible coneccion de db para un futuro
-class Database{
-    static #instance
+const mongoose = require('mongoose');
 
-    constructor(){
-        if (Database.#instance){
-            return Database.#instance;
-        }
-        this.connection = "Conexion establecida"
-        Database.#instance= this;
-
-        query(sql){
-            return "Ejecutando: "+sql;
-        }
+const connectDB = async () => {
+    try {
+        mongoose.connect(process.env.MONGO_URI)
+        .then(() => {
+            console.log('Conectado a MongoDB');
+        })
+        .catch((error) => {
+            console.error('Error de conexión a MongoDB:', error);
+        });
+        console.log('MongoDB conectado correctamente');
+    } catch (error) {
+        console.error(`Error al conectar a MongoDB: ${error.message}`);
+        process.exit(1);
     }
-}
+};
+
+module.exports = connectDB;

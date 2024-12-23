@@ -1,10 +1,9 @@
-class Entrenador {
-    constructor(id, username, password, role) {
-        this.id = id;
-        this.username = username;
-        this.password = password;
-        this.role = role;
-    }
-}
+const mongoose = require('mongoose');
 
-module.exports = Entrenador;
+const EntrenadorSchema = new mongoose.Schema({
+    username: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    role: { type: String, default: "user" }, // user o admin
+});
+
+module.exports = mongoose.model('Entrenador', EntrenadorSchema);

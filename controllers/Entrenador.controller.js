@@ -1,54 +1,78 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const Entrenador = require('../models/Entrenador.Model');
+const Entrenador = require('../models/Entrenador.Model'); 
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY; 
 
-let entrenadores = [];  //guardamos a los entrenadores en memoria
-register = (req, res) => {
-    const { username, password, role } = req.body;
+// Registrar un nuevo entrenador
+const register = async (req, res) => {
+    try {
+        const { username, password, role } = req.body;
 
-    const usuarioExistente = entrenadores.find((entrenador) => entrenador.username === username);
-    if (usuarioExistente) {
-        return res.status(400).json({ status: 'error', message: 'El usuario ya existe' });
-    }
-    // encripto la contraseña
-    const hashedPassword = bcrypt.hashSync(password, 10);
-    const newEntrenador = new Entrenador(entrenadores.length + 1, username, hashedPassword, role);
-
-    entrenadores.push(newEntrenador);
-    res.status(201).json({ 
-        status: "success", 
-        message: "Usuario registrado"
-    });
-}
-
-login  = (req, res) => {
-    const { username, password } = req.body;
-
-    const entrenador = entrenadores.find((entrenador) => entrenador.username === username);
-    if (!entrenador) {
-        return res.status(401).json({ status: 'error', message: 'Usuario o contraseña incorrectos' });
-    }
-   
-    const isPasswordValid = bcrypt.compareSync(password, entrenador.password);
-    if (!isPasswordValid) {
-        return res.status(401).json({ status: 'error', message: 'Usuario o contraseña incorrectos' });
-    }
-    // Generar el token y se lo devulvo para los otros servicios
-    const token = jwt.sign({ id: entrenador.id, username: entrenador.username, role: entrenador.role }, JWT_SECRET_KEY, {
-        expiresIn: '1h', 
-    });
-
-    res.status(200).json({
-        status: 'success',
-        message: 'Login exitoso',
-        data: {
-            "token" : token 
+        // Verifica si el usuario ya existe
+        const usuarioExistente = await Entrenador.findOne({ username });
+        if (usuarioExistente) {
+            return res.status(400).json({ status: 'error', message: 'El usuario ya existe' });
         }
-    });
-}
+
+        // Encripta la contraseña antes de guardarla
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Crea un nuevo entrenador
+        const newEntrenador = new Entrenador({
+            username,
+            password: hashedPassword,
+            role,
+        });
+
+        // Guarda al entrenador 
+        await newEntrenador.save();
+
+        res.status(201).json({
+            status: 'success',
+            message: 'Usuario registrado',
+        });
+    } catch (error) {
+        res.status(500).json({ status: 'error', message: error.message });
+    }
+};
+
+// Iniciar sesión y generar JWT
+const login = async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        // Busca al entrenador 
+        const entrenador = await Entrenador.findOne({ username });
+        if (!entrenador) {
+            return res.status(401).json({ status: 'error', message: 'Usuario o contraseña incorrectos' });
+        }
+
+        // Compara la contraseña con la almacenada en la base de datos
+        const isPasswordValid = await bcrypt.compare(password, entrenador.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ status: 'error', message: 'Usuario o contraseña incorrectos' });
+        }
+
+        // Genera y retorna el token JWT
+        const token = jwt.sign(
+            { id: entrenador._id, username: entrenador.username, role: entrenador.role },
+            JWT_SECRET_KEY,
+            { expiresIn: '1h' }
+        );
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Login exitoso',
+            data: {
+                token,
+            },
+        });
+    } catch (error) {
+        res.status(500).json({ status: 'error', message: error.message });
+    }
+};
 
 module.exports = {
     register,
-    login
-}
+    login,
+};

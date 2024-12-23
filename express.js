@@ -1,6 +1,8 @@
 const express = require("express")
 const cors = require("cors")
 const dotenv = require("dotenv")
+const connectDB = require("./config/db");
+
 dotenv.config();
 
 const app = express();
@@ -32,6 +34,16 @@ app.use((err, req, res, next) => {
 });
 
 const port = process.env.PORT || 3000;
-app.listen(port,()=>{
-    console.log("Ejecutando API pokemon puerto :"+port)
-})
+const startServer = async() => {
+    try {
+        await connectDB();
+        app.listen(port, () => {
+            console.log("Ejecutando API pokemon puerto :"+port)
+        })
+    
+    } catch (error) {
+        console.log("error", error)
+    }
+}
+
+startServer()
